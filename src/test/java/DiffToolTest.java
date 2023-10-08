@@ -1,8 +1,7 @@
 import org.example.changetype.ChangeType;
 import org.example.diff.DiffTool;
-import org.example.sample.Car;
-import org.example.sample.Engine;
-import org.example.sample.Wheel;
+import org.example.exceptions.NonexistentIdException;
+import org.example.sample.*;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -10,10 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class DiffToolTest {
 
     private static final String DEFAULT_PATH = "DEFAULT_PROPERTY_NAME";
+
+    private DiffTool diffTool;
 
     private Car carPrevious;
 
@@ -29,6 +31,8 @@ public class DiffToolTest {
 
     @BeforeClass
     public void setUp() {
+        diffTool = new DiffTool();
+
         Wheel wheelFLPrev = new Wheel("fl", "konig", 15.0);
         Wheel wheelFRPrev = new Wheel("fr", "konig", 15.0);
         Wheel wheelRLPrev = new Wheel("rl", "konig", 15.0);
@@ -63,7 +67,6 @@ public class DiffToolTest {
 
     @Test
     public void diffToolTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(carPrevious, carCurrent);
         assertThat(diffs)
                 .filteredOn(changeType -> changeType.getProperty().equals("make"))
@@ -94,7 +97,6 @@ public class DiffToolTest {
 
     @Test
     public void primitivesTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff("Previous string", "Current string");
         assertThat(diffs)
                 .filteredOn(changeType -> changeType.getProperty().equals(DEFAULT_PATH))
@@ -104,7 +106,6 @@ public class DiffToolTest {
 
     @Test
     public void prevNullEngineTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(carPreviousWithNullEngine, carCurrent);
 
         assertThat(diffs)
@@ -138,7 +139,6 @@ public class DiffToolTest {
 
     @Test
     public void currNullFixesTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(carPrevious, carCurrentWithNullFixes);
         assertThat(diffs)
                 .filteredOn(changeType -> changeType.getProperty().equals("fixes"))
@@ -165,7 +165,6 @@ public class DiffToolTest {
 
     @Test
     public void prevNullFixesTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(carPrevWithNullFixes, carCurrent);
         assertThat(diffs)
                 .filteredOn(changeType -> changeType.getProperty().equals("fixes"))
@@ -192,7 +191,6 @@ public class DiffToolTest {
 
     @Test
     public void incorrectWheelTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(carPrevWithNullWheel, carCurrent);
 
         assertThat(diffs)
@@ -225,7 +223,6 @@ public class DiffToolTest {
 
     @Test
     public void prevNullTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(null, carCurrent);
         assertThat(diffs)
                 .filteredOn(changeType -> changeType.getProperty().equals(DEFAULT_PATH))
@@ -235,7 +232,6 @@ public class DiffToolTest {
 
     @Test
     public void currNullTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(carPrevious, null);
         assertThat(diffs)
                 .filteredOn(changeType -> changeType.getProperty().equals(DEFAULT_PATH))
@@ -245,14 +241,12 @@ public class DiffToolTest {
 
     @Test
     public void bothNullTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(null, null);
         assertThat(diffs).isEmpty();
     }
 
     @Test
     public void randomListTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<String> prev = new ArrayList<>();
         prev.add("element1");
         prev.add("element2");
@@ -270,11 +264,29 @@ public class DiffToolTest {
 
     @Test
     public void doubleTest() throws Exception {
-        DiffTool diffTool = new DiffTool();
         List<ChangeType> diffs = diffTool.diff(12.0, 18.0);
         assertThat(diffs)
                 .filteredOn(changeType -> changeType.getProperty().equals(DEFAULT_PATH))
                 .filteredOn(changeType -> changeType.getPrevious().equals(12.0) && changeType.getCurrent().equals(18.0))
                 .hasSize(1);
+    }
+
+    @Test
+    public void idExceptionTest() {
+        BikeWheel bikeWheel = new BikeWheel("front", 19.0);
+        Bike bikePrev = new Bike("city", List.of(bikeWheel));
+        Bike bikeCurr = new Bike("trek", List.of(bikeWheel));
+
+        assertThatThrownBy(() -> {
+            List<ChangeType> diffs = diffTool.diff(bikePrev, bikeCurr);
+        })
+                .isInstanceOf(NonexistentIdException.class)
+                .hasMessage("Cannot determine ID field!");
+    }
+
+    @Test
+    public void differentTypesTest() throws Exception {
+        List<ChangeType> diffs = diffTool.diff(12.0, "test");
+        assertThat(diffs).isEmpty();
     }
 }

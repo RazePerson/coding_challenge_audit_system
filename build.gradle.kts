@@ -20,6 +20,9 @@ dependencies {
 
 }
 
-tasks.test {
+tasks.named<Test>("test") {
     useTestNG()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }

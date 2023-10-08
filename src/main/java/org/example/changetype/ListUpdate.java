@@ -1,7 +1,5 @@
 package org.example.changetype;
 
-import lombok.AllArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.List;
 
